@@ -1,0 +1,19 @@
+version: '3'
+services:
+ # MODIFYME
+ cyberex:
+  image: centos-rust
+  # [Optional] Required for ptrace-based debuggers like C++, Go, and Rust
+  cap_add:
+    - SYS_PTRACE
+  security_opt:
+    - seccomp:unconfined
+  volumes:
+    # MODIFYME
+    - ..:/workspace/cyberex
+    - ../../thirdlib:/workspace/cyberex/thirdlib:ro
+  entrypoint:
+    - /bin/sh
+  tty: true
+
+

@@ -1,0 +1,46 @@
+{
+    "dockerComposeFile": [
+        "./docker-compose.yml"
+    ],
+    // MODIFYME
+    "name": "cyberex",
+    // MODIFYME
+    "service": "cyberex",
+    // MODIFYME
+    "workspaceFolder": "/workspace/cyberex",
+    "shutdownAction": "stopCompose",
+    "extensions": [
+        "rust-lang.rust-analyzer",
+        "bungcip.better-toml",
+        "serayuzgur.crates",
+        "swellaby.vscode-rust-test-adapter",
+        "actboy168.tasks",
+        "mhutchie.git-graph",
+        "eamodio.gitlens",
+        "visualstudioexptteam.vscodeintellicode",
+        "rioukkevin.vscode-git-commit",
+        "ms-vscode.test-adapter-converter"
+    ],
+    "postStartCommand": "bash scripts/DevContainerPostCreate.sh",
+    "settings": {
+        "editor.semanticTokenColorCustomizations": {
+            "enabled": true
+        },
+        "[rust]": {
+            "editor.formatOnSave": true,
+            "editor.formatOnSaveMode": "file",
+            "editor.defaultFormatter": "rust-lang.rust-analyzer"
+        },
+        "[cpp]": {
+            "editor.formatOnSave": true,
+            "editor.formatOnSaveMode": "modifications",
+            "editor.defaultFormatter": "ms-vscode.cpptools"
+        },
+        "rust-analyzer.server.path": "rust-analyzer",
+        "rust-analyzer.updates.askBeforeDownload": false,
+        "rust-analyzer.checkOnSave.command": "clippy",
+        "rust-analyzer.inlayHints.chainingHints.enable": true,
+        "rust-analyzer.inlayHints.closingBraceHints.enable": true,
+        "rust-analyzer.completion.autoimport.enable": false
+    }
+}
