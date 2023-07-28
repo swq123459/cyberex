@@ -6,4 +6,13 @@
     },
     "rust-analyzer.inlayHints.chainingHints.enable": true,
     "rust-analyzer.inlayHints.closingBraceHints.enable": true,
+    "rust-analyzer.linkedProjects": [
+        ".\\Cargo.toml"
+    ],
+    "rust-analyzer.cargo.features": [
+        "full"
+    ],
+    "rust-analyzer.check.features": [
+        "full"
+    ],
 }
