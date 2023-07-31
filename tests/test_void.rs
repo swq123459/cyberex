@@ -11,8 +11,6 @@ mod tests {
     fn test_null() {
         let raw_void = ptr::null_mut::<c_void>();
         opacue_to_mut::<VoidStrut>(raw_void.cast());
-
-        assert!(true);
     }
 
     #[test]
