@@ -12,6 +12,7 @@ services:
     # MODIFYME
     - ..:/workspace/cyberex
     - ../../thirdlib:/workspace/cyberex/thirdlib:ro
+    - ../../video-sample:/workspace/cyberex/tests/video-sample:ro
   entrypoint:
     - /bin/sh
   tty: true
