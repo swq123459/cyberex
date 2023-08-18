@@ -26,7 +26,7 @@ where
 
 pub fn target_link_directories<Paths>(p: Paths)
 where
-    Paths: IntoIterator<Item = LibKind>,
+    Paths: IntoIterator,
     Paths::Item: AsRef<std::path::Path>,
 {
     for path in p {
@@ -57,5 +57,12 @@ mod tests {
     fn test_target_link_libraries() {
         target_link_libraries([LibKind::Shared("z".to_string())]);
         target_link_libraries(vec![LibKind::Shared("z".to_string())]);
+    }
+
+    #[test]
+    fn test_target_link_directories() {
+        target_link_directories(["path1"]);
+        target_link_directories(vec!["path1"]);
+
     }
 }
