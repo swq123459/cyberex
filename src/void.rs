@@ -21,8 +21,11 @@ impl<T> HyVoid<T> {
             _phantom: PhantomData,
         }
     }
-    pub unsafe fn as_ptr(&self) -> *mut c_void {
+    pub fn as_ptr(&self) -> *mut c_void {
         self.ptr
+    }
+    pub fn as_dptr(&mut self) -> *mut *mut c_void {
+        std::ptr::addr_of_mut!(self.ptr)
     }
 }
 
@@ -35,7 +38,7 @@ pub fn opacue_to_mut<'a, T>(user: *mut T) -> &'a mut T {
 pub fn opacue_to_ref<'a, T>(user: *const T) -> &'a T {
     unsafe { &*(user as *const T) as &T }
 }
-pub unsafe fn mut_to_opacue<T>(r: &mut T) -> *mut c_void {
+pub fn mut_to_opacue<T>(r: &mut T) -> *mut c_void {
     r as *const _ as *mut _
 }
 
