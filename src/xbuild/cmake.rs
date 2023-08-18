@@ -15,16 +15,19 @@ pub fn format_target_link_libraries(kind: LibKind) -> String {
     )
 }
 
-pub fn target_link_libraries(kinds: Vec<LibKind>) {
+pub fn target_link_libraries<Libs>(kinds: Libs)
+where
+    Libs: IntoIterator<Item = LibKind>,
+{
     for kind in kinds {
         println!("{}", format_target_link_libraries(kind));
     }
 }
 
-pub fn target_link_directories<P>(p: P)
+pub fn target_link_directories<Paths>(p: Paths)
 where
-    P: IntoIterator,
-    P::Item: AsRef<std::path::Path>,
+    Paths: IntoIterator<Item = LibKind>,
+    Paths::Item: AsRef<std::path::Path>,
 {
     for path in p {
         println!("cargo:rustc-link-search={}", path.as_ref().display());
@@ -49,5 +52,10 @@ mod tests {
             format_target_link_libraries(LibKind::Auto("m".into())),
             "cargo:rustc-link-lib=m"
         );
+    }
+    #[test]
+    fn test_target_link_libraries() {
+        target_link_libraries([LibKind::Shared("z".to_string())]);
+        target_link_libraries(vec![LibKind::Shared("z".to_string())]);
     }
 }
