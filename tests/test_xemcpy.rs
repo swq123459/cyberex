@@ -31,12 +31,10 @@ mod tests {
     fn test_xemcpy_type_and_fuzzy() {
         let source = vec![1_u32, 2, 3, 4];
         let mut destination: [i32; 3] = [0, 0, 0];
-
         unsafe {
             // note, here no need mut ref to destination
             xemcpy!(&mut destination[0], &source[1], 3);
         }
         assert_eq!(destination, [2, 3, 4]);
     }
-    
 }
