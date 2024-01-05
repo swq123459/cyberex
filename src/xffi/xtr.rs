@@ -16,4 +16,3 @@ pub fn string_to_dbuffer(s: &str, buf: *mut *mut u8, buf_max: *mut usize) {
         *buf = s.as_ptr() as *mut _;
     }
 }
-

@@ -10,9 +10,9 @@ pub fn string_to_array<const COUNT: usize>(s: &str) -> [c_char; COUNT] {
 }
 
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub fn cchar_to_string(c_char: *const c_char) -> String {
-    if c_char as usize == 0 {
+pub fn cchar_to_string(c_str: *const c_char) -> String {
+    if c_str.is_null() {
         return String::new();
     }
-    unsafe { CStr::from_ptr(c_char).to_string_lossy().into_owned() }
+    unsafe { CStr::from_ptr(c_str).to_string_lossy().into_owned() }
 }
