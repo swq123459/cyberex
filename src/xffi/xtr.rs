@@ -1,6 +1,9 @@
 use std::ptr::copy_nonoverlapping;
 
 pub fn string_to_buffer(s: &str, buf: *mut u8, buf_max: usize) {
+    if buf.is_null() || buf_max == 0 {
+        return;
+    }
     let len = std::cmp::min(buf_max - 1, s.len());
 
     unsafe {
