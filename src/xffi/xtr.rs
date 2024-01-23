@@ -1,5 +1,5 @@
 use std::ptr::copy_nonoverlapping;
-
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub fn string_to_buffer(s: &str, buf: *mut u8, buf_max: usize) {
     if buf.is_null() || buf_max == 0 {
         return;
@@ -11,6 +11,7 @@ pub fn string_to_buffer(s: &str, buf: *mut u8, buf_max: usize) {
         buf.add(len).write_bytes(0_u8, 1);
     }
 }
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub fn string_to_dbuffer(s: &str, buf: *mut *mut u8, buf_max: *mut usize) {
     let len = s.len();
 

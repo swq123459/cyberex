@@ -33,10 +33,11 @@ pub fn opacue_to_mut<'a, T>(user: *mut T) -> &'a mut T {
     if user.is_null() {
         panic!("Pointer is null")
     }
-    unsafe { &mut *(user as *mut T) as &mut T }
+    unsafe { &mut *(user.cast()) as &mut T }
 }
 pub fn opacue_to_ref<'a, T>(user: *const T) -> &'a T {
-    unsafe { &*(user as *const T) as &T }
+
+    unsafe { &*(user.cast()) as &T }
 }
 pub fn mut_to_opacue<T>(r: &mut T) -> *mut c_void {
     r as *const _ as *mut _

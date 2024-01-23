@@ -9,7 +9,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "Pointer is null")]
     fn test_null() {
         let raw_void = ptr::null_mut::<c_void>();
         opacue_to_mut::<VoidStrut>(raw_void.cast());
@@ -47,5 +47,30 @@ mod tests {
             let dereferenced_value = *dereferenced_ptr;
             assert_eq!(dereferenced_value, 42);
         }
+    }
+
+    #[test]
+    fn test_opacue_to_mut() {
+        let mut stru = VoidStrut { age: 1 };
+        let raw_stru = ptr::addr_of_mut!(stru);
+
+        let stru_ref = opacue_to_mut(raw_stru);
+        stru_ref.age = 2;
+        assert_eq!(stru.age, 2);
+    }
+
+    #[test]
+    fn test_opacue_to_ref() {
+        let stru = VoidStrut { age: 1 };
+        let raw_stru = ptr::addr_of!(stru);
+
+        let stru_ref = opacue_to_ref(raw_stru);
+        assert_eq!(stru_ref.age, 1);
+    }
+
+    #[test]
+    fn test_new_and_delete() {
+        let ptr = new(VoidStrut { age: 1 });
+        delete::<VoidStrut>(ptr);
     }
 }
