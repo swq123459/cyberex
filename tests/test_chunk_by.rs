@@ -101,7 +101,7 @@ mod tests {
         let v = vsom.clone().into_iter().flatten().collect::<Vec<_>>();
 
         let k = chunkByIf_once(&v, 4, |i, w| {
-            w == [0x00, 0x00, 0x01, 0xE0] || w == [0x00, 0x00, 0x01, 0xC0] || i == 0
+            w == [0x00, 0x00, 0x01, 0xE0] || w == [0x00, 0x00, 0x01, 0xC0] || w == [0x00, 0x00, 0x01, 0xBD] || i == 0
         });
         for (i, s) in k.into_iter().enumerate() {
             assert_eq!(s, vsom[i]);
