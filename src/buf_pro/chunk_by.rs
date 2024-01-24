@@ -1,5 +1,4 @@
-use super::search::{filter_in, search_in};
-
+use super::search::{filter_in, filter_in_if, search_in};
 
 #[allow(non_snake_case)]
 pub fn chunkBy_once<'a, T: PartialEq>(input: &'a [T], iden: &[T]) -> Vec<&'a [T]> {
@@ -15,6 +14,22 @@ pub fn chunkBy_once<'a, T: PartialEq>(input: &'a [T], iden: &[T]) -> Vec<&'a [T]
 
     v
 }
+
+#[allow(non_snake_case)]
+pub fn chunkByIf_once<T: PartialEq>(input: &[T], win_size: usize, f: impl Fn(usize, &[T]) -> bool) -> Vec<&[T]> {
+    let mut v = Vec::new();
+
+    {
+        let mut o = filter_in_if(input, win_size, f);
+        o.push(input.len());
+        o
+    }
+    .windows(2)
+    .for_each(|i| v.push(&input[i[0]..i[1]]));
+
+    v
+}
+
 pub struct ChunkerBy<T> {
     iden: Vec<T>,
     buffer: Vec<T>,
@@ -72,7 +87,6 @@ impl<T: PartialEq + Clone> ChunkerBy<T> {
                         },
                         Some(next_step) => {
                             let next = find_offset + next_step;
-
 
                             let s = start;
                             nalu_start = Some(next);

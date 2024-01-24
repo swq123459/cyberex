@@ -90,6 +90,24 @@ mod tests {
     }
 
     #[test]
+    fn test_chunkByIf_once() {
+        let vsom = [
+            vec![0x00, 0x00, 0x01, 0xBA, 0x11],
+            vec![0x00, 0x00, 0x01, 0xE0, 0x11, 0x11, 0x11, 0x11, 0x11],
+            vec![0x00, 0x00, 0x01, 0xC0, 0x11, 0x11, 0x11],
+            vec![0x00, 0x00, 0x01, 0xE0, 0x11, 0x11, 0x11, 0x11, 0x11],
+        ];
+        let v = vsom.clone().into_iter().flatten().collect::<Vec<_>>();
+
+        let k = chunkByIf_once(&v, 4, |i, w| {
+            w == [0x00, 0x00, 0x01, 0xE0] || w == [0x00, 0x00, 0x01, 0xC0] || i == 0
+        });
+        for (i, s) in k.into_iter().enumerate() {
+            assert_eq!(s, vsom[i]);
+        }
+    }
+
+    #[test]
     fn just_search_in() {
         assert_eq!(search_in(&[0, 1, 2, 3, 4, 1, 2, 3], &[1, 2, 3]), Some(1));
     }
@@ -97,5 +115,26 @@ mod tests {
     #[test]
     fn just_filter_in() {
         assert_eq!(filter_in(&[0, 1, 2, 3, 4, 1, 2, 3], &[1, 2, 3]), [1, 5]);
+    }
+    #[test]
+    fn just_filter_in_if() {
+        assert_eq!(
+            filter_in_if(&[0, 1, 2, 3, 4, 1, 2, 4], 3, |_, w| {
+                w == [1, 2, 3] || w == [1, 2, 4]
+            }),
+            [1, 5]
+        );
+        assert_eq!(
+            filter_in_if(&[0, 1, 2, 3, 4, 1, 2, 4], 3, |i, w| {
+                w == [1, 2, 3] || w == [1, 2, 4] || i == 0
+            }),
+            [0, 1, 5]
+        );
+        assert_eq!(
+            filter_in_if(&[0, 1, 2, 3, 4, 1, 2, 4], 3, |_, w| {
+                w == [1, 1, 1] || w == [2, 2, 2]
+            }),
+            []
+        );
     }
 }
