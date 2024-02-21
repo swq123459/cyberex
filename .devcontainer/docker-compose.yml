@@ -2,7 +2,7 @@ version: '3'
 services:
  # MODIFYME
  cyberex:
-  image: centos-rust
+  image: ubuntu-rust
   # [Optional] Required for ptrace-based debuggers like C++, Go, and Rust
   cap_add:
     - SYS_PTRACE

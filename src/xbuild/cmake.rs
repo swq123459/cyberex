@@ -30,7 +30,11 @@ where
     Paths::Item: AsRef<std::path::Path>,
 {
     for path in p {
-        println!("cargo:rustc-link-search={}", path.as_ref().display());
+        let path_str = path.as_ref().display().to_string();
+        if path_str.is_empty() {
+            continue;
+        }
+        println!("cargo:rustc-link-search={}", path_str);
     }
 }
 
@@ -61,8 +65,8 @@ mod tests {
 
     #[test]
     fn test_target_link_directories() {
+        target_link_directories([""]);
         target_link_directories(["path1"]);
         target_link_directories(vec!["path1"]);
-
     }
 }
