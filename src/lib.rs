@@ -5,7 +5,7 @@ pub mod xfs;
 pub mod xbuild;
 pub mod xffi;
 pub mod xnum;
-
+pub mod env;
 
 #[cfg(feature = "enable-async")]
 pub mod xasync;
