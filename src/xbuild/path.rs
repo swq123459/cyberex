@@ -20,7 +20,7 @@ where
     let lib_must = p.join(get_dist_lib_name());
     let lib_alt = if lib_must.ends_with("64") { "lib" } else { "lib64" };
     let out = if lib_must.exists() { lib_must } else { p.join(lib_alt) };
-    path_to_string(std::fs::canonicalize(&out).unwrap_or(out))
+    path_to_string(out)
 }
 
 #[cfg(test)]
@@ -28,10 +28,18 @@ mod tests {
     use super::*;
     #[test]
     fn test_case_lib_path_of_root() {
-        assert_eq!(
-            lib_path_of_root("/workspace/cyberex/thirdlib/catch2"),
-            "/workspace/cyberex/thirdlib/catch2/lib"
-        );
-        
+        if cfg!(windows) {
+            assert_eq!(
+                lib_path_of_root(
+                    r#"D:\code\thirdlib\EaxLibrary\EaxComponent\gb_media\build\gb-media\thirdlib\ffmpeg\"#
+                ),
+                r#"D:\code\thirdlib\EaxLibrary\EaxComponent\gb_media\build\gb-media\thirdlib\ffmpeg\lib"#
+            );
+        } else if cfg!(linux) {
+            assert_eq!(
+                lib_path_of_root("/workspace/cyberex/thirdlib/catch2"),
+                "/workspace/cyberex/thirdlib/catch2/lib"
+            );
+        }
     }
 }
