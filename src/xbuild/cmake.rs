@@ -7,13 +7,13 @@ pub enum LibKind {
 }
 
 fn libname_strip(lib_name: &str) -> String {
-    let temp = if cfg!(target_os = "linux") {
-        lib_name.strip_prefix("lib").unwrap_or(lib_name)
+    if cfg!(target_os = "linux") {
+        // Note: here remove the suffix in linux, beacause windows contain '*.a' as static library
+        let temp = lib_name.strip_prefix("lib").unwrap_or(lib_name);
+        path_to_string(std::path::Path::new(&temp).file_stem().unwrap_or(temp.as_ref()))
     } else {
-        lib_name
-    };
-
-    path_to_string(std::path::Path::new(&temp).file_stem().unwrap_or(temp.as_ref()))
+        lib_name.to_string()
+    }
 }
 
 pub fn format_target_link_libraries(kind: LibKind) -> String {
