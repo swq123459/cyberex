@@ -1,24 +1,28 @@
+use crate::xpath::path::path_to_string;
+
 pub enum LibKind {
     Shared(String),
     Static(String),
     Auto(String),
 }
 
-fn libname_strip(lib_name: &str) -> &str {
-    if cfg!(target_os = "linux") {
+fn libname_strip(lib_name: &str) -> String {
+    let temp = if cfg!(target_os = "linux") {
         lib_name.strip_prefix("lib").unwrap_or(lib_name)
     } else {
         lib_name
-    }
+    };
+
+    path_to_string(std::path::Path::new(&temp).file_stem().unwrap_or(temp.as_ref()))
 }
 
 pub fn format_target_link_libraries(kind: LibKind) -> String {
     format!(
         "cargo:rustc-link-lib={}",
         match kind {
-            LibKind::Shared(name) => "dylib=".to_string() + libname_strip(&name),
-            LibKind::Static(name) => "static=".to_string() + libname_strip(&name),
-            LibKind::Auto(name) => libname_strip(&name).to_string(),
+            LibKind::Shared(name) => "dylib=".to_string() + &libname_strip(&name),
+            LibKind::Static(name) => "static=".to_string() + &libname_strip(&name),
+            LibKind::Auto(name) => libname_strip(&name),
         }
     )
 }
@@ -64,7 +68,22 @@ mod tests {
             format_target_link_libraries(LibKind::Auto("libm".into())),
             "cargo:rustc-link-lib=m"
         );
-
+        assert_eq!(
+            format_target_link_libraries(LibKind::Auto("m.a".into())),
+            "cargo:rustc-link-lib=m"
+        );
+        assert_eq!(
+            format_target_link_libraries(LibKind::Auto("libm.a".into())),
+            "cargo:rustc-link-lib=m"
+        );
+        assert_eq!(
+            format_target_link_libraries(LibKind::Auto("libm.lib".into())),
+            "cargo:rustc-link-lib=m"
+        );
+        assert_eq!(
+            format_target_link_libraries(LibKind::Auto("libm.so".into())),
+            "cargo:rustc-link-lib=m"
+        );
         assert_eq!(
             format_target_link_libraries(LibKind::Shared("m".into())),
             "cargo:rustc-link-lib=dylib=m"

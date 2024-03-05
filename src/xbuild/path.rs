@@ -20,7 +20,7 @@ where
     let lib_must = p.join(get_dist_lib_name());
     let lib_alt = if lib_must.ends_with("64") { "lib" } else { "lib64" };
     let out = if lib_must.exists() { lib_must } else { p.join(lib_alt) };
-    path_to_string(out)
+    path_to_string(std::fs::canonicalize(&out).unwrap_or(out))
 }
 
 #[cfg(test)]
@@ -32,5 +32,6 @@ mod tests {
             lib_path_of_root("/workspace/cyberex/thirdlib/catch2"),
             "/workspace/cyberex/thirdlib/catch2/lib"
         );
+        
     }
 }
