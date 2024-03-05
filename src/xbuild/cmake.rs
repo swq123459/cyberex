@@ -4,13 +4,21 @@ pub enum LibKind {
     Auto(String),
 }
 
+fn libname_strip(lib_name: &str) -> &str {
+    if cfg!(target_os = "linux") {
+        lib_name.strip_prefix("lib").unwrap_or(lib_name)
+    } else {
+        lib_name
+    }
+}
+
 pub fn format_target_link_libraries(kind: LibKind) -> String {
     format!(
         "cargo:rustc-link-lib={}",
         match kind {
-            LibKind::Shared(name) => "dylib=".to_string() + &name,
-            LibKind::Static(name) => "static=".to_string() + &name,
-            LibKind::Auto(name) => name,
+            LibKind::Shared(name) => "dylib=".to_string() + libname_strip(&name),
+            LibKind::Static(name) => "static=".to_string() + libname_strip(&name),
+            LibKind::Auto(name) => libname_strip(&name).to_string(),
         }
     )
 }
@@ -45,9 +53,23 @@ mod tests {
     #[test]
     fn test_format_target_link_libraries() {
         assert_eq!(
+            format_target_link_libraries(LibKind::Shared("libm".into())),
+            "cargo:rustc-link-lib=dylib=m"
+        );
+        assert_eq!(
+            format_target_link_libraries(LibKind::Static("libm".into())),
+            "cargo:rustc-link-lib=static=m"
+        );
+        assert_eq!(
+            format_target_link_libraries(LibKind::Auto("libm".into())),
+            "cargo:rustc-link-lib=m"
+        );
+
+        assert_eq!(
             format_target_link_libraries(LibKind::Shared("m".into())),
             "cargo:rustc-link-lib=dylib=m"
         );
+
         assert_eq!(
             format_target_link_libraries(LibKind::Static("m".into())),
             "cargo:rustc-link-lib=static=m"
@@ -57,6 +79,7 @@ mod tests {
             "cargo:rustc-link-lib=m"
         );
     }
+
     #[test]
     fn test_target_link_libraries() {
         target_link_libraries([LibKind::Shared("z".to_string())]);
