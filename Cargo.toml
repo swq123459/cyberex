@@ -20,13 +20,11 @@ exclude = [
 [features]
 default = []
 full = ["enable-async"]
-enable-async = ["tokio"]
+enable-async = ["dep:tokio"]
 
 
-[dependencies.tokio]
-version = "^1"
-features = ["full"]
-optional = true
+[dependencies]
+tokio = { version = "^1", features = ["full"], optional = true }
 
 [dev-dependencies]
 cyberex = { path = ".", features = ["full"] }
