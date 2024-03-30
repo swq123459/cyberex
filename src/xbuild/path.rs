@@ -1,6 +1,7 @@
 use crate::plat::dist::{plat_dist, PlatDist};
 use crate::xpath::path::path_to_string;
-use std::path::Path;
+use std::env;
+use std::path::{Path, PathBuf};
 
 fn get_dist_lib_name() -> String {
     match plat_dist() {
@@ -23,6 +24,42 @@ where
     path_to_string(out)
 }
 
+pub fn cargo_profile_dir() -> String {
+    return PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
+        .display()
+        .to_string();
+}
+pub fn cargo_target_dir() -> String {
+    let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    let mut target_dir = None;
+    let mut sub_path = out_dir.as_path();
+    while let Some(parent) = sub_path.parent() {
+        if parent.ends_with("target") {
+            target_dir = Some(parent);
+            break;
+        }
+        sub_path = parent;
+    }
+    let target_dir = target_dir.unwrap();
+    target_dir.to_path_buf().display().to_string()
+}
+
+pub fn cargo_target_bin_dir() -> String {
+    let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    let profile = std::env::var("PROFILE").unwrap();
+    let mut target_dir = None;
+    let mut sub_path = out_dir.as_path();
+    while let Some(parent) = sub_path.parent() {
+        if parent.ends_with(&profile) {
+            target_dir = Some(parent);
+            break;
+        }
+        sub_path = parent;
+    }
+    let target_dir = target_dir.unwrap();
+    target_dir.to_path_buf().display().to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -41,5 +78,13 @@ mod tests {
                 "/workspace/cyberex/thirdlib/catch2/lib"
             );
         }
+    }
+
+    #[test]
+    fn test_cargo_target_dir() {
+        std::env::set_var("PROFILE", "debug");
+        assert_eq!(cargo_target_bin_dir(), "/workspace/cyberex/target/debug");
+        assert_eq!(cargo_target_dir(), "/workspace/cyberex/target");
+        assert_eq!(cargo_profile_dir(), "/workspace/cyberex");
     }
 }
