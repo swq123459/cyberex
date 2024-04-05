@@ -48,7 +48,6 @@ fn get_dist_lib_suffix() -> String {
 pub fn lib_path_of_root<Paths>(lib_root: Paths) -> String
 where
     Paths: AsRef<std::path::Path>,
-    Paths: std::fmt::Display,
 {
     let p = Path::new(lib_root.as_ref());
     let lib_must = p.join(get_dist_lib_name());
@@ -59,7 +58,6 @@ where
 pub fn include_path_of_root<Paths>(lib_root: Paths) -> String
 where
     Paths: AsRef<std::path::Path>,
-    Paths: std::fmt::Display,
 {
     let out = lib_root.as_ref().join("include");
     path_to_string(out)
@@ -68,7 +66,6 @@ where
 pub fn dev_path_of_root<Paths>(lib_root: Paths) -> DevPath
 where
     Paths: AsRef<std::path::Path>,
-    Paths: std::fmt::Display,
 {
     DevPath {
         include: PathBuf::from(include_path_of_root(&lib_root)),
@@ -127,8 +124,8 @@ mod tests {
     #[test]
     fn test_case_lib_path_of_root() {
         match plat_dist() {
-            PlatDist::Rh => assert_eq!(lib_path_of_root("/noexist"), "/noexist/lib"),
-            PlatDist::Debian => assert_eq!(lib_path_of_root("/noexist"), "/noexist/lib64"),
+            PlatDist::Rh => assert_eq!(lib_path_of_root(PathBuf::from("/noexist")), "/noexist/lib"),
+            PlatDist::Debian => assert_eq!(lib_path_of_root(PathBuf::from("/noexist")), "/noexist/lib64"),
             PlatDist::Other => {},
         };
 
