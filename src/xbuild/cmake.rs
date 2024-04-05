@@ -46,6 +46,7 @@ where
         if path_str.is_empty() {
             continue;
         }
+        println!("cargo:rerun-if-changed={}", path_str);
         println!("cargo:rustc-link-search={}", path_str);
     }
 }
