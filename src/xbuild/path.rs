@@ -10,6 +10,22 @@ pub struct DevPath {
     pub lib: PathBuf,
 }
 
+impl DevPath {
+    pub fn get_shared(&self) -> Vec<PathBuf> {
+        let mut netca_libs = Vec::new();
+        if let Ok(paths) = std::fs::read_dir(&self.lib) {
+            for path in paths.flatten() {
+                let path = path.path();
+                if path.is_file() && path.extension() == Some(get_dist_lib_suffix().as_ref()) {
+                    netca_libs.push(path);
+                }
+            }
+        }
+
+        netca_libs
+    }
+}
+
 fn get_dist_lib_name() -> String {
     match plat_dist() {
         PlatDist::Rh => "lib64",
@@ -17,6 +33,16 @@ fn get_dist_lib_name() -> String {
         PlatDist::Other => "lib",
     }
     .to_string()
+}
+
+fn get_dist_lib_suffix() -> String {
+    if cfg!(target_os = "linux") {
+        "so".to_string()
+    } else if cfg!(target_os = "windows") {
+        "dll".to_string()
+    } else {
+        panic!("unkown os")
+    }
 }
 
 pub fn lib_path_of_root<Paths>(lib_root: Paths) -> String
@@ -100,33 +126,58 @@ mod tests {
     use super::*;
     #[test]
     fn test_case_lib_path_of_root() {
-        if cfg!(windows) {
+        match plat_dist() {
+            PlatDist::Rh => assert_eq!(lib_path_of_root("/noexist"), "/noexist/lib"),
+            PlatDist::Debian => assert_eq!(lib_path_of_root("/noexist"), "/noexist/lib64"),
+            PlatDist::Other => {},
+        };
+
+        if cfg!(target_os = "windows") {
             assert_eq!(
                 lib_path_of_root(
                     r#"D:\code\thirdlib\EaxLibrary\EaxComponent\gb_media\build\gb-media\thirdlib\ffmpeg\"#
                 ),
                 r#"D:\code\thirdlib\EaxLibrary\EaxComponent\gb_media\build\gb-media\thirdlib\ffmpeg\lib"#
             );
-        } else if cfg!(linux) {
-            let catch_root = "/workspace/cyberex/thirdlib/catch2";
-            let catch_lib = "/workspace/cyberex/thirdlib/catch2/lib";
-            let catch_include = "/workspace/cyberex/thirdlib/catch2/include";
+        }
+        if cfg!(target_os = "linux") {
+            println!("fuck you ");
+            let catch_root = "/workspace/cyberex/thirdlib/ffmpeg";
+            let catch_lib = "/workspace/cyberex/thirdlib/ffmpeg/lib";
+            let catch_include = "/workspace/cyberex/thirdlib/ffmpeg/include";
 
             assert_eq!(lib_path_of_root(catch_root), catch_lib);
             assert_eq!(include_path_of_root(catch_root), catch_include);
             let dev_path = dev_path_of_root(catch_root);
             assert_eq!(dev_path.lib.display().to_string(), catch_lib);
             assert_eq!(dev_path.include.display().to_string(), catch_include);
+            assert_eq!(
+                dev_path.get_shared(),
+                Vec::from([
+                    PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavformat.so"),
+                    PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavutil.so"),
+                    PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavfilter.so"),
+                    PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavcodec.so"),
+                    PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libswscale.so"),
+                    PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libswresample.so"),
+                    PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavdevice.so")
+                ])
+            );
 
-            std::env::set_var("FUCKYOU_ROOT", "debug");
-            let dev_path = dev_path_of_root_env(catch_root);
-            assert_eq!(dev_path.lib.display().to_string(), "debug/lib");
-            assert_eq!(dev_path.include.display().to_string(), "debug/include");
-
+            let env_var = "FUCKYOU_ROOT";
+            std::env::set_var(env_var, "/workspace/cyberex/thirdlib/catch2");
+            let dev_path = dev_path_of_root_env(env_var);
+            assert_eq!(
+                dev_path.lib.display().to_string(),
+                "/workspace/cyberex/thirdlib/catch2/lib"
+            );
+            assert_eq!(
+                dev_path.include.display().to_string(),
+                "/workspace/cyberex/thirdlib/catch2/include"
+            );
 
             let dev_path = dev_path_of_root_env("noexist");
             assert_eq!(dev_path, DevPath::default());
-
         }
     }
 
