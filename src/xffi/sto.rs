@@ -16,3 +16,13 @@ pub fn cchar_to_string(c_str: *const c_char) -> String {
     }
     unsafe { CStr::from_ptr(c_str).to_string_lossy().into_owned() }
 }
+
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub fn string_to_buffer(s: &str, buf: *mut u8, buf_max: usize) {
+    crate::xffi::xtr::string_to_buffer(s, buf, buf_max)
+}
+
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub fn string_to_dbuffer(s: &str, buf: *mut *mut u8, buf_max: *mut usize) {
+    crate::xffi::xtr::string_to_dbuffer(s, buf, buf_max)
+}

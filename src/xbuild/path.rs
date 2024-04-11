@@ -1,5 +1,4 @@
 use crate::plat::dist::{plat_dist, PlatDist};
-use crate::xpath::path::path_to_string;
 use std::env;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
@@ -45,7 +44,7 @@ fn get_dist_lib_suffix() -> String {
     }
 }
 
-pub fn lib_path_of_root<Paths>(lib_root: Paths) -> String
+pub fn lib_path_of_root<Paths>(lib_root: Paths) -> PathBuf
 where
     Paths: AsRef<std::path::Path>,
 {
@@ -53,14 +52,13 @@ where
     let lib_must = p.join(get_dist_lib_name());
     let lib_alt = if lib_must.ends_with("64") { "lib" } else { "lib64" };
     let out = if lib_must.exists() { lib_must } else { p.join(lib_alt) };
-    path_to_string(out)
+    out
 }
-pub fn include_path_of_root<Paths>(lib_root: Paths) -> String
+pub fn include_path_of_root<Paths>(lib_root: Paths) -> PathBuf
 where
     Paths: AsRef<std::path::Path>,
 {
-    let out = lib_root.as_ref().join("include");
-    path_to_string(out)
+    lib_root.as_ref().join("include")
 }
 
 pub fn dev_path_of_root<Paths>(lib_root: Paths) -> DevPath
@@ -68,8 +66,8 @@ where
     Paths: AsRef<std::path::Path>,
 {
     DevPath {
-        include: PathBuf::from(include_path_of_root(&lib_root)),
-        lib: PathBuf::from(lib_path_of_root(lib_root)),
+        include: include_path_of_root(&lib_root),
+        lib: lib_path_of_root(lib_root),
     }
 }
 pub fn dev_path_of_root_env<K>(lib_root_key: K) -> DevPath
@@ -82,12 +80,13 @@ where
     }
 }
 
-pub fn cargo_profile_dir() -> String {
-    return PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
-        .display()
-        .to_string();
+pub fn cargo_profile_dir() -> PathBuf {
+    PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
 }
-pub fn cargo_target_dir() -> String {
+pub fn cargo_root_profile_dir() -> PathBuf {
+    cargo_target_dir().parent().unwrap().to_path_buf()
+}
+pub fn cargo_target_dir() -> PathBuf {
     let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let mut target_dir = None;
     let mut sub_path = out_dir.as_path();
@@ -99,10 +98,10 @@ pub fn cargo_target_dir() -> String {
         sub_path = parent;
     }
     let target_dir = target_dir.unwrap();
-    target_dir.to_path_buf().display().to_string()
+    target_dir.to_path_buf()
 }
 
-pub fn cargo_target_bin_dir() -> String {
+pub fn cargo_target_bin_dir() -> PathBuf {
     let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let profile = std::env::var("PROFILE").unwrap();
     let mut target_dir = None;
@@ -115,7 +114,7 @@ pub fn cargo_target_bin_dir() -> String {
         sub_path = parent;
     }
     let target_dir = target_dir.unwrap();
-    target_dir.to_path_buf().display().to_string()
+    target_dir.to_path_buf()
 }
 
 #[cfg(test)]
@@ -124,8 +123,14 @@ mod tests {
     #[test]
     fn test_case_lib_path_of_root() {
         match plat_dist() {
-            PlatDist::Rh => assert_eq!(lib_path_of_root(PathBuf::from("/noexist")), "/noexist/lib"),
-            PlatDist::Debian => assert_eq!(lib_path_of_root(PathBuf::from("/noexist")), "/noexist/lib64"),
+            PlatDist::Rh => assert_eq!(
+                lib_path_of_root(PathBuf::from("/noexist")),
+                PathBuf::from("/noexist/lib")
+            ),
+            PlatDist::Debian => assert_eq!(
+                lib_path_of_root(PathBuf::from("/noexist")),
+                PathBuf::from("/noexist/lib64")
+            ),
             PlatDist::Other => {},
         };
 
@@ -134,7 +139,9 @@ mod tests {
                 lib_path_of_root(
                     r#"D:\code\thirdlib\EaxLibrary\EaxComponent\gb_media\build\gb-media\thirdlib\ffmpeg\"#
                 ),
-                r#"D:\code\thirdlib\EaxLibrary\EaxComponent\gb_media\build\gb-media\thirdlib\ffmpeg\lib"#
+                PathBuf::from(
+                    r#"D:\code\thirdlib\EaxLibrary\EaxComponent\gb_media\build\gb-media\thirdlib\ffmpeg\lib"#
+                )
             );
         }
         if cfg!(target_os = "linux") {
@@ -143,22 +150,30 @@ mod tests {
             let catch_lib = "/workspace/cyberex/thirdlib/ffmpeg/lib";
             let catch_include = "/workspace/cyberex/thirdlib/ffmpeg/include";
 
-            assert_eq!(lib_path_of_root(catch_root), catch_lib);
-            assert_eq!(include_path_of_root(catch_root), catch_include);
+            assert_eq!(lib_path_of_root(catch_root), PathBuf::from(catch_lib));
+            assert_eq!(include_path_of_root(catch_root), PathBuf::from(catch_include));
             let dev_path = dev_path_of_root(catch_root);
             assert_eq!(dev_path.lib.display().to_string(), catch_lib);
             assert_eq!(dev_path.include.display().to_string(), catch_include);
             assert_eq!(
-                dev_path.get_shared(),
-                Vec::from([
-                    PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavformat.so"),
-                    PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavutil.so"),
-                    PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavfilter.so"),
-                    PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavcodec.so"),
-                    PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libswscale.so"),
-                    PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libswresample.so"),
-                    PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavdevice.so")
-                ])
+                {
+                    let mut v = dev_path.get_shared();
+                    v.sort();
+                    v
+                },
+                {
+                    let mut v = Vec::from([
+                        PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavformat.so"),
+                        PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavutil.so"),
+                        PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavfilter.so"),
+                        PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavcodec.so"),
+                        PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libswscale.so"),
+                        PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libswresample.so"),
+                        PathBuf::from("/workspace/cyberex/thirdlib/ffmpeg/lib/libavdevice.so"),
+                    ]);
+                    v.sort();
+                    v
+                }
             );
 
             let env_var = "FUCKYOU_ROOT";
@@ -181,8 +196,9 @@ mod tests {
     #[test]
     fn test_cargo_target_dir() {
         std::env::set_var("PROFILE", "debug");
-        assert_eq!(cargo_target_bin_dir(), "/workspace/cyberex/target/debug");
-        assert_eq!(cargo_target_dir(), "/workspace/cyberex/target");
-        assert_eq!(cargo_profile_dir(), "/workspace/cyberex");
+        assert_eq!(cargo_target_bin_dir(), PathBuf::from("/workspace/cyberex/target/debug"));
+        assert_eq!(cargo_target_dir(), PathBuf::from("/workspace/cyberex/target"));
+        assert_eq!(cargo_profile_dir(), PathBuf::from("/workspace/cyberex"));
+        assert_eq!(cargo_root_profile_dir(), PathBuf::from("/workspace/cyberex"));
     }
 }
