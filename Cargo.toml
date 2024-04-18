@@ -1,6 +1,6 @@
 [package]
 name = "cyberex"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 license = "MIT"
 description = """
@@ -25,6 +25,6 @@ enable-async = ["dep:tokio"]
 
 [dependencies]
 tokio = { version = "^1", features = ["full"], optional = true }
-
+anyhow = "1.0.82"
 [dev-dependencies]
 cyberex = { path = ".", features = ["full"] }

@@ -1,5 +1,11 @@
-use crate::xpath::path::path_to_string;
+use std::{
+    fs::{create_dir_all, File},
+    io::Write,
+    path::{Path, PathBuf},
+};
 
+use crate::xpath::path::path_to_string;
+use anyhow::Result;
 pub enum LibKind {
     Shared(String),
     Static(String),
@@ -51,6 +57,160 @@ where
     }
 }
 
+#[derive(Default)]
+pub struct Target {
+    pub name: String,
+    pub files: String,
+    pub include_dir: Option<String>,
+    pub lib_dir: Option<String>,
+    pub dep: Vec<String>,
+    pub type_: String,
+}
+pub struct Module {
+    module_name: String,
+    targets: Vec<Target>,
+    out_path: PathBuf,
+    version: String,
+}
+
+impl Module {
+    pub fn builder() -> ModuleBuilder {
+        ModuleBuilder::default()
+    }
+    pub fn write(&self) -> Result<()> {
+        create_dir_all(&self.out_path)?;
+        self.write_version_file()?;
+        self.write_target_file()?;
+        self.write_config_file()?;
+        Ok(())
+    }
+
+    fn get_target_file_name(&self) -> String {
+        format!("{}Targets.cmake", self.module_name)
+    }
+
+    fn write_config_file(&self) -> Result<()> {
+        let file_name = format!("{}Config.cmake", self.module_name);
+        let mut file = File::create(self.out_path.join(file_name))?;
+        file.write_all(
+            format!(
+                r#"include(${{CMAKE_CURRENT_LIST_DIR}}/{})"#,
+                self.get_target_file_name()
+            )
+            .as_bytes(),
+        )?;
+
+        Ok(())
+    }
+
+    fn write_version_file(&self) -> Result<()> {
+        let file_name = format!("{}ConfigVersion.cmake", self.module_name);
+        let mut file = File::create(self.out_path.join(file_name))?;
+        file.write_all(format!(r#"set(PACKAGE_VERSION "{}")"#, self.version).as_bytes())?;
+        Ok(())
+    }
+
+    fn write_target_file(&self) -> Result<()> {
+        let file_name = self.get_target_file_name();
+        let mut file = File::create(self.out_path.join(file_name))?;
+        file.write_all(
+            r#"
+get_filename_component(var_import_prefix "${CMAKE_CURRENT_LIST_FILE}" PATH)
+get_filename_component(var_import_prefix "${var_import_prefix}" PATH)
+"#
+            .as_bytes(),
+        )?;
+        file.write_all(b"\n")?;
+        for target in &self.targets {
+            let sub_target_name = format!("{}::{}", self.module_name, target.name);
+            file.write_all(format!(r#"add_library({} {} IMPORTED)"#, sub_target_name, target.type_).as_bytes())?;
+            file.write_all(b"\n")?;
+
+            file.write_all(format!(r#"set_target_properties({} PROPERTIES"#, sub_target_name).as_bytes())?;
+            file.write_all(b"\n")?;
+
+            {
+                let mut prop_line = "".to_string();
+                if let Some(include_dir) = &target.include_dir {
+                    prop_line = format!(
+                        r#"INTERFACE_INCLUDE_DIRECTORIES  "${{var_import_prefix}}/{}""#,
+                        include_dir
+                    );
+                }
+                file.write_all(prop_line.as_bytes())?;
+                file.write_all(b"\n")?;
+            }
+            {
+                let mut prop_line = "".to_string();
+                if let Some(lib_dir) = &target.lib_dir {
+                    prop_line = format!(
+                        r#"IMPORTED_LOCATION  "${{var_import_prefix}}/{}/{}""#,
+                        lib_dir, target.files
+                    );
+                }
+                file.write_all(prop_line.as_bytes())?;
+                file.write_all(b"\n")?;
+            }
+            {
+                file.write_all(b"IMPORTED_NO_SONAME TRUE")?;
+                file.write_all(b"\n")?;
+            }
+            {
+                let dep_part = target.dep.join(";");
+                file.write_all(format!(r#"INTERFACE_LINK_LIBRARIES "{}""#, dep_part).as_bytes())?;
+                file.write_all(b"\n")?;
+            }
+
+            file.write_all(b")\n")?;
+
+            file.write_all(r#"set(${CMAKE_FIND_PACKAGE_NAME}_FOUND TRUE)"#.to_string().as_bytes())?;
+            file.write_all(b"\n")?;
+
+            file.write_all(
+                format!(r#"message(STATUS "Using {} ${{{}_VERSION}}")"#, self.module_name, self.module_name)
+                    .to_string()
+                    .as_bytes(),
+            )?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Default)]
+pub struct ModuleBuilder {
+    target_name: Vec<Target>,
+    out_path: Option<PathBuf>,
+    module_name: Option<String>,
+    version: Option<String>,
+}
+impl ModuleBuilder {
+    pub fn add_target(mut self, target: Target) -> Self {
+        self.target_name.push(target);
+        self
+    }
+    pub fn module_name(mut self, module_name: impl Into<String>) -> Self {
+        self.module_name = Some(module_name.into());
+        self
+    }
+    pub fn version(mut self, version: impl Into<String>) -> Self {
+        self.version = Some(version.into());
+        self
+    }
+    pub fn out_path(mut self, out_path: impl AsRef<Path>) -> Self {
+        self.out_path = Some(out_path.as_ref().to_path_buf());
+        self
+    }
+
+    pub fn build(self) -> Module {
+        Module {
+            version: self.version.expect("Version must be set"),
+            module_name: self.module_name.expect("Module name must be set"),
+            targets: self.target_name,
+            out_path: self.out_path.expect("Output path must be set"),
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -111,5 +271,24 @@ mod tests {
         target_link_directories([""]);
         target_link_directories(["path1"]);
         target_link_directories(vec!["path1"]);
+    }
+
+    #[test]
+    fn test_module_writer() {
+        // Mod
+        let m = Module::builder()
+            .module_name("FUCK")
+            .version("2.0")
+            .out_path("/workspace/cyberex/target")
+            .add_target(Target {
+                name: "YOU".to_string(),
+                files: "fuck.so".to_string(),
+                include_dir: Some("include".to_string()),
+                lib_dir: Some("lib".to_string()),
+                dep: vec!["dl".to_string(), "ssl".to_string()],
+                type_: "SHARED".to_string(),
+            })
+            .build();
+        m.write().unwrap();
     }
 }
