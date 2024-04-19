@@ -92,42 +92,47 @@ impl Module {
     fn write_config_file(&self) -> Result<()> {
         let file_name = format!("{}Config.cmake", self.module_name);
         let mut file = File::create(self.out_path.join(file_name))?;
-        file.write_all(
-            format!(
-                r#"include(${{CMAKE_CURRENT_LIST_DIR}}/{})"#,
-                self.get_target_file_name()
-            )
-            .as_bytes(),
-        )?;
+        let text = self.get_config_str()?;
+        file.write_all(text.as_bytes())?;
 
         Ok(())
+    }
+    fn get_config_str(&self) -> Result<String> {
+        let s = format!(
+            r#"include(${{CMAKE_CURRENT_LIST_DIR}}/{})"#,
+            self.get_target_file_name()
+        );
+        Ok(s)
     }
 
     fn write_version_file(&self) -> Result<()> {
         let file_name = format!("{}ConfigVersion.cmake", self.module_name);
         let mut file = File::create(self.out_path.join(file_name))?;
-        file.write_all(format!(r#"set(PACKAGE_VERSION "{}")"#, self.version).as_bytes())?;
+        let text = self.get_verion_str()?;
+        file.write_all(text.as_bytes())?;
         Ok(())
     }
 
-    fn write_target_file(&self) -> Result<()> {
-        let file_name = self.get_target_file_name();
-        let mut file = File::create(self.out_path.join(file_name))?;
-        file.write_all(
-            r#"
+    fn get_verion_str(&self) -> Result<String> {
+        let s = format!(r#"set(PACKAGE_VERSION "{}")"#, self.version);
+
+        Ok(s)
+    }
+
+    fn get_target_str(&self) -> Result<String> {
+        let mut s = String::new();
+        s += r#"
 get_filename_component(var_import_prefix "${CMAKE_CURRENT_LIST_FILE}" PATH)
-get_filename_component(var_import_prefix "${var_import_prefix}" PATH)
-"#
-            .as_bytes(),
-        )?;
-        file.write_all(b"\n")?;
+get_filename_component(var_import_prefix "${var_import_prefix}" PATH)"#
+            .trim();
+        s += "\n";
         for target in &self.targets {
             let sub_target_name = format!("{}::{}", self.module_name, target.name);
-            file.write_all(format!(r#"add_library({} {} IMPORTED)"#, sub_target_name, target.type_).as_bytes())?;
-            file.write_all(b"\n")?;
+            s += &format!(r#"add_library({} {} IMPORTED)"#, sub_target_name, target.type_);
+            s += "\n";
 
-            file.write_all(format!(r#"set_target_properties({} PROPERTIES"#, sub_target_name).as_bytes())?;
-            file.write_all(b"\n")?;
+            s += &format!(r#"set_target_properties({} PROPERTIES"#, sub_target_name);
+            s += "\n";
 
             {
                 let mut prop_line = "".to_string();
@@ -137,8 +142,8 @@ get_filename_component(var_import_prefix "${var_import_prefix}" PATH)
                         include_dir
                     );
                 }
-                file.write_all(prop_line.as_bytes())?;
-                file.write_all(b"\n")?;
+                s += &prop_line;
+                s += "\n";
             }
             {
                 let mut prop_line = "".to_string();
@@ -148,31 +153,41 @@ get_filename_component(var_import_prefix "${var_import_prefix}" PATH)
                         lib_dir, target.files
                     );
                 }
-                file.write_all(prop_line.as_bytes())?;
-                file.write_all(b"\n")?;
+                s += &prop_line;
+
+                s += "\n";
             }
             {
-                file.write_all(b"IMPORTED_NO_SONAME TRUE")?;
-                file.write_all(b"\n")?;
+                s += "IMPORTED_NO_SONAME TRUE";
+                s += "\n";
             }
             {
-                let dep_part = target.dep.join(";");
-                file.write_all(format!(r#"INTERFACE_LINK_LIBRARIES "{}""#, dep_part).as_bytes())?;
-                file.write_all(b"\n")?;
+                if !target.dep.is_empty() {
+                    let dep_part = target.dep.join(";");
+                    s += &format!(r#"INTERFACE_LINK_LIBRARIES "{}""#, dep_part);
+                    s += "\n";
+                }
             }
+            s += ")";
 
-            file.write_all(b")\n")?;
+            s += "\n";
+            s += r#"set(${CMAKE_FIND_PACKAGE_NAME}_FOUND TRUE)"#;
 
-            file.write_all(r#"set(${CMAKE_FIND_PACKAGE_NAME}_FOUND TRUE)"#.to_string().as_bytes())?;
-            file.write_all(b"\n")?;
-
-            file.write_all(
-                format!(r#"message(STATUS "Using {} ${{{}_VERSION}}")"#, self.module_name, self.module_name)
-                    .to_string()
-                    .as_bytes(),
-            )?;
+            s += "\n";
+            s += &format!(
+                r#"message(STATUS "Using {} ${{{}_VERSION}}")"#,
+                self.module_name, self.module_name
+            );
         }
+        Ok(s)
+    }
 
+    fn write_target_file(&self) -> Result<()> {
+        let file_name = self.get_target_file_name();
+        let mut file = File::create(self.out_path.join(file_name))?;
+
+        let text = self.get_target_str()?;
+        file.write_all(text.as_bytes())?;
         Ok(())
     }
 }
@@ -289,6 +304,32 @@ mod tests {
                 type_: "SHARED".to_string(),
             })
             .build();
+        assert_eq!(
+            m.get_target_str().unwrap().trim(),
+            r#"
+get_filename_component(var_import_prefix "${CMAKE_CURRENT_LIST_FILE}" PATH)
+get_filename_component(var_import_prefix "${var_import_prefix}" PATH)
+add_library(FUCK::YOU SHARED IMPORTED)
+set_target_properties(FUCK::YOU PROPERTIES
+INTERFACE_INCLUDE_DIRECTORIES  "${var_import_prefix}/include"
+IMPORTED_LOCATION  "${var_import_prefix}/lib/fuck.so"
+IMPORTED_NO_SONAME TRUE
+INTERFACE_LINK_LIBRARIES "dl;ssl"
+)
+set(${CMAKE_FIND_PACKAGE_NAME}_FOUND TRUE)
+message(STATUS "Using FUCK ${FUCK_VERSION}")
+        "#
+            .trim()
+        );
+        assert_eq!(
+            m.get_verion_str().unwrap().trim(),
+            r#"set(PACKAGE_VERSION "2.0")"#.trim()
+        );
+         assert_eq!(
+            m.get_config_str().unwrap().trim(),
+            r#"include(${CMAKE_CURRENT_LIST_DIR}/FUCKTargets.cmake)"#.trim()
+        );
         m.write().unwrap();
+
     }
 }
