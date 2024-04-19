@@ -73,4 +73,25 @@ mod tests {
         let ptr = new(VoidStrut { age: 1 });
         delete::<VoidStrut>(ptr);
     }
+    #[test]
+    fn test_new_and_then_and_delete() {
+        {
+            let ptr = new_and_then(VoidStrut { age: 1 }, |b| {
+                b.age = 2;
+                Ok(())
+            })
+            .unwrap();
+            assert_eq!(of_addr(ptr.cast::<VoidStrut>()).age, 2);
+
+            delete::<VoidStrut>(ptr);
+        }
+        {
+            let ptr = new_and_then(VoidStrut { age: 1 }, |b| {
+                b.age = 2;
+
+                anyhow::bail!("err");
+            });
+            assert!(ptr.is_err());
+        }
+    }
 }

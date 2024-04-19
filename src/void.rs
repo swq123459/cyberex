@@ -33,6 +33,14 @@ pub fn opacue_to_mut<'a, T>(user: *mut T) -> &'a mut T {
 pub fn opacue_to_ref<'a, T>(user: *const T) -> &'a T {
     unsafe { &*(user.cast()) as &T }
 }
+
+pub fn of_addr<'a, T>(user: *const T) -> &'a T {
+    opacue_to_ref(user)
+}
+
+pub fn of_mut_addr<'a, T>(user: *mut T) -> &'a mut T {
+    opacue_to_mut(user)
+}
 pub fn mut_to_opacue<T>(r: &mut T) -> *mut c_void {
     r as *const _ as *mut _
 }
@@ -42,4 +50,16 @@ pub fn delete<T>(ctx: *mut c_void) {
 }
 pub fn new<T>(t: T) -> *mut c_void {
     unsafe { &mut *(Box::into_raw(Box::new(t)) as *mut c_void) }
+}
+
+pub fn new_and_then<T, F>(t: T, op: F) -> Result<*mut c_void, anyhow::Error>
+where
+    F: FnOnce(&mut T) -> Result<(), anyhow::Error>,
+{
+    let mut b = Box::new(t);
+
+    match op(b.as_mut()) {
+        Ok(_) => Ok(unsafe { &mut *(Box::into_raw(b) as *mut c_void) }),
+        Err(e) => Err(e),
+    }
 }
