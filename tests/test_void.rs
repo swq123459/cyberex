@@ -25,22 +25,36 @@ mod tests {
 
     #[test]
     fn test_hyvoid() {
-        let stru = VoidStrut { age: 1 };
-        let void = HyVoid::from_ref(&stru);
+        let mut stru = VoidStrut { age: 1 };
+        let void = HyVoid::from_ref(&mut stru);
 
         let stru_ref = opacue_to_mut::<VoidStrut>(void.as_ptr().cast());
         assert_eq!(stru_ref.age, 1);
 
         let void_2 = HyVoid::<VoidStrut>::from_ptr(void.as_ptr());
         let stru_re2 = opacue_to_mut::<VoidStrut>(void_2.as_ptr().cast());
+        stru_re2.age = 2;
+
+        assert_eq!(stru_re2.age, 2);
+    }
+    #[test]
+    fn test_hyvoidconst() {
+        let stru = VoidStrut { age: 1 };
+        let void = HyVoidConst::from_ref(&stru);
+
+        let stru_ref = opacue_to_ref::<VoidStrut>(void.as_ptr().cast());
+        assert_eq!(stru_ref.age, 1);
+
+        let void_2 = HyVoidConst::<VoidStrut>::from_ptr(void.as_ptr());
+        let stru_re2 = opacue_to_ref::<VoidStrut>(void_2.as_ptr().cast());
 
         assert_eq!(stru_re2.age, 1);
     }
     #[test]
     fn test_hyvoid_dptr() {
-        let value: i32 = 42;
+        let mut value: i32 = 42;
 
-        let mut void = HyVoid::from_ref(&value);
+        let mut void = HyVoid::from_ref(&mut value);
         let dptr: *mut *mut i32 = void.as_dptr() as _;
         unsafe {
             let dereferenced_ptr = *dptr;

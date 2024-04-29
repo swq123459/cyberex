@@ -8,7 +8,7 @@ unsafe impl<T> Send for HyVoid<T> where T: Send {}
 unsafe impl<T> Sync for HyVoid<T> where T: Sync {}
 
 impl<T> HyVoid<T> {
-    pub fn from_ref(r: &T) -> Self {
+    pub fn from_ref(r: &mut T) -> Self {
         Self {
             ptr: NonNull::from(r).as_ptr().cast(),
         }
@@ -16,11 +16,36 @@ impl<T> HyVoid<T> {
     pub fn from_ptr(ptr: *mut c_void) -> Self {
         Self { ptr: ptr.cast() }
     }
+
     pub fn as_ptr(&self) -> *mut c_void {
         self.ptr.cast()
     }
     pub fn as_dptr(&mut self) -> *mut *mut c_void {
         std::ptr::addr_of_mut!(self.ptr).cast()
+    }
+}
+
+pub struct HyVoidConst<T> {
+    ptr: *const T,
+}
+unsafe impl<T> Send for HyVoidConst<T> where T: Send {}
+unsafe impl<T> Sync for HyVoidConst<T> where T: Sync {}
+
+impl<T> HyVoidConst<T> {
+    pub fn from_ref(r: &T) -> Self {
+        Self {
+            ptr: NonNull::from(r).as_ptr().cast(),
+        }
+    }
+    pub fn from_ptr(ptr: *const c_void) -> Self {
+        Self { ptr: ptr.cast() }
+    }
+
+    pub fn as_ptr(&self) -> *const c_void {
+        self.ptr.cast()
+    }
+    pub fn as_dptr(&mut self) -> *const *const c_void {
+        std::ptr::addr_of!(self.ptr).cast()
     }
 }
 
