@@ -32,6 +32,16 @@ impl DevPath {
     }
 }
 
+pub fn watch<Paths>(path: Paths) -> PathBuf
+where
+    Paths: AsRef<std::path::Path>,
+{
+    if path.as_ref().exists() {
+        println!("cargo::rerun-if-changed={}/*", path.as_ref().display());
+    }
+    path.as_ref().to_path_buf()
+}
+
 fn get_dist_lib_name() -> String {
     match plat_dist() {
         PlatDist::Rh => "lib64",
@@ -59,20 +69,15 @@ where
     let lib_must = p.join(get_dist_lib_name());
     let lib_alt = if lib_must.ends_with("64") { "lib" } else { "lib64" };
     let path = if lib_must.exists() { lib_must } else { p.join(lib_alt) };
-    if path.exists() {
-        println!("cargo::rerun-if-changed={}/*", path.display());
-    }
-    path
+    watch(path)
 }
 pub fn include_path_of_root<Paths>(lib_root: Paths) -> PathBuf
 where
     Paths: AsRef<std::path::Path>,
 {
     let path = lib_root.as_ref().join("include");
-    if path.exists() {
-        println!("cargo::rerun-if-changed={}/*", path.display());
-    }
-    path
+
+    watch(path)
 }
 
 pub fn dev_path_of_root<Paths>(lib_root: Paths) -> DevPath
