@@ -37,7 +37,7 @@ where
     Paths: AsRef<std::path::Path>,
 {
     if path.as_ref().exists() {
-        println!("cargo::rerun-if-changed={}/*", path.as_ref().display());
+        println!("cargo::rerun-if-changed={}", path.as_ref().join("*").display());
     }
     path.as_ref().to_path_buf()
 }
