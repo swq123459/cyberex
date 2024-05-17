@@ -3,7 +3,7 @@ use std::env;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
-#[derive(Default, Debug, PartialEq, Eq)]
+#[derive(Default, Debug, PartialEq, Eq, Clone)]
 pub struct DevPath {
     pub include: PathBuf,
     pub lib: PathBuf,
@@ -22,6 +22,13 @@ impl DevPath {
         }
 
         netca_libs
+    }
+
+    pub fn include(&self) -> &PathBuf {
+        &self.include
+    }
+    pub fn lib(&self) -> &PathBuf {
+        &self.lib
     }
 }
 
@@ -51,14 +58,21 @@ where
     let p = Path::new(lib_root.as_ref());
     let lib_must = p.join(get_dist_lib_name());
     let lib_alt = if lib_must.ends_with("64") { "lib" } else { "lib64" };
-    let out = if lib_must.exists() { lib_must } else { p.join(lib_alt) };
-    out
+    let path = if lib_must.exists() { lib_must } else { p.join(lib_alt) };
+    if path.exists() {
+        println!("cargo::rerun-if-changed={}/*", path.display());
+    }
+    path
 }
 pub fn include_path_of_root<Paths>(lib_root: Paths) -> PathBuf
 where
     Paths: AsRef<std::path::Path>,
 {
-    lib_root.as_ref().join("include")
+    let path = lib_root.as_ref().join("include");
+    if path.exists() {
+        println!("cargo::rerun-if-changed={}/*", path.display());
+    }
+    path
 }
 
 pub fn dev_path_of_root<Paths>(lib_root: Paths) -> DevPath
@@ -70,14 +84,21 @@ where
         lib: lib_path_of_root(lib_root),
     }
 }
-pub fn dev_path_of_root_env<K>(lib_root_key: K) -> DevPath
+pub fn dev_path_of_root_env_or<K>(lib_root_key: K, default: DevPath) -> DevPath
 where
     K: AsRef<OsStr>,
 {
     match env::var(lib_root_key) {
-        Err(_) => DevPath::default(),
+        Err(_) => default,
         Ok(lib_root) => dev_path_of_root(lib_root),
     }
+}
+
+pub fn dev_path_of_root_env<K>(lib_root_key: K) -> DevPath
+where
+    K: AsRef<OsStr>,
+{
+    dev_path_of_root_env_or(lib_root_key, DevPath::default())
 }
 
 pub fn cargo_profile_dir() -> PathBuf {
@@ -191,6 +212,16 @@ mod tests {
             let dev_path = dev_path_of_root_env("noexist");
             assert_eq!(dev_path, DevPath::default());
         }
+    }
+    #[test]
+    fn test_dev_path_of_root_env() {
+        let env_var = "FUCKYOU_ROOT";
+        let default_value = DevPath {
+            include: "fuck".into(),
+            lib: "you".into(),
+        };
+        let dev_path = dev_path_of_root_env_or(env_var, default_value.clone());
+        assert!(dev_path == default_value);
     }
 
     #[test]

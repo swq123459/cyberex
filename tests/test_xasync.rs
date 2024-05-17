@@ -6,6 +6,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_case_send_call_enum() {
+        #[allow(dead_code)]
         enum Ctrl {
             Start {
                 name: String,
