@@ -1,11 +1,13 @@
+use crate::xpath::path::path_to_string;
+use anyhow::Result;
 use std::{
     fs::{create_dir_all, File},
     io::Write,
     path::{Path, PathBuf},
 };
 
-use crate::xpath::path::path_to_string;
-use anyhow::Result;
+static CARGO_SCRIPT_SKIP_RUSTC_LINK_LIB: &str = "CARGO_SCRIPT_SKIP_RUSTC_LINK_LIB";
+
 pub enum LibKind {
     Shared(String),
     Static(String),
@@ -22,15 +24,21 @@ fn libname_strip(lib_name: &str) -> String {
     }
 }
 
-pub fn format_target_link_libraries(kind: LibKind) -> String {
-    format!(
-        "cargo:rustc-link-lib={}",
-        match kind {
-            LibKind::Shared(name) => "dylib=".to_string() + &libname_strip(&name),
-            LibKind::Static(name) => "static=".to_string() + &libname_strip(&name),
-            LibKind::Auto(name) => libname_strip(&name),
-        }
-    )
+pub fn format_target_link_libraries(kind: LibKind) -> Option<String> {
+    match std::env::var(CARGO_SCRIPT_SKIP_RUSTC_LINK_LIB) {
+        Ok(value) if value == "1" => None,
+        _ => {
+            let line = format!(
+                "cargo:rustc-link-lib={}",
+                match kind {
+                    LibKind::Shared(name) => "dylib=".to_string() + &libname_strip(&name),
+                    LibKind::Static(name) => "static=".to_string() + &libname_strip(&name),
+                    LibKind::Auto(name) => libname_strip(&name),
+                }
+            );
+            Some(line)
+        },
+    }
 }
 
 pub fn target_link_libraries<Libs>(kinds: Libs)
@@ -38,7 +46,9 @@ where
     Libs: IntoIterator<Item = LibKind>,
 {
     for kind in kinds {
-        println!("{}", format_target_link_libraries(kind));
+        if let Some(line) = format_target_link_libraries(kind) {
+            println!("{}", line);
+        }
     }
 }
 
@@ -234,45 +244,51 @@ mod tests {
     fn test_format_target_link_libraries() {
         assert_eq!(
             format_target_link_libraries(LibKind::Shared("libm".into())),
-            "cargo:rustc-link-lib=dylib=m"
+            Some("cargo:rustc-link-lib=dylib=m".to_string())
         );
         assert_eq!(
             format_target_link_libraries(LibKind::Static("libm".into())),
-            "cargo:rustc-link-lib=static=m"
+            Some("cargo:rustc-link-lib=static=m".to_string())
         );
         assert_eq!(
             format_target_link_libraries(LibKind::Auto("libm".into())),
-            "cargo:rustc-link-lib=m"
+            Some("cargo:rustc-link-lib=m".to_string())
         );
         assert_eq!(
             format_target_link_libraries(LibKind::Auto("m.a".into())),
-            "cargo:rustc-link-lib=m"
+            Some("cargo:rustc-link-lib=m".to_string())
         );
         assert_eq!(
             format_target_link_libraries(LibKind::Auto("libm.a".into())),
-            "cargo:rustc-link-lib=m"
+            Some("cargo:rustc-link-lib=m".to_string())
         );
         assert_eq!(
             format_target_link_libraries(LibKind::Auto("libm.lib".into())),
-            "cargo:rustc-link-lib=m"
+            Some("cargo:rustc-link-lib=m".to_string())
         );
         assert_eq!(
             format_target_link_libraries(LibKind::Auto("libm.so".into())),
-            "cargo:rustc-link-lib=m"
+            Some("cargo:rustc-link-lib=m".to_string())
         );
         assert_eq!(
             format_target_link_libraries(LibKind::Shared("m".into())),
-            "cargo:rustc-link-lib=dylib=m"
+            Some("cargo:rustc-link-lib=dylib=m".to_string())
         );
 
         assert_eq!(
             format_target_link_libraries(LibKind::Static("m".into())),
-            "cargo:rustc-link-lib=static=m"
+            Some("cargo:rustc-link-lib=static=m".to_string())
         );
         assert_eq!(
             format_target_link_libraries(LibKind::Auto("m".into())),
-            "cargo:rustc-link-lib=m"
+            Some("cargo:rustc-link-lib=m".to_string())
         );
+    }
+    #[test]
+    fn test_format_target_link_libraries_skip() {
+        std::env::set_var("CARGO_SCRIPT_SKIP_RUSTC_LINK_LIB", "1");
+
+        assert_eq!(format_target_link_libraries(LibKind::Auto("m".into())), None);
     }
 
     #[test]
@@ -325,11 +341,10 @@ message(STATUS "Using FUCK ${FUCK_VERSION}")
             m.get_verion_str().unwrap().trim(),
             r#"set(PACKAGE_VERSION "2.0")"#.trim()
         );
-         assert_eq!(
+        assert_eq!(
             m.get_config_str().unwrap().trim(),
             r#"include(${CMAKE_CURRENT_LIST_DIR}/FUCKTargets.cmake)"#.trim()
         );
         m.write().unwrap();
-
     }
 }
