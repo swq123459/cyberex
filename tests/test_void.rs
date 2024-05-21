@@ -16,11 +16,24 @@ mod tests {
     }
 
     #[test]
-    fn test_point() {
+    fn test_point_mut() {
         let mut stru = VoidStrut { age: 1 };
         let raw_stru = ptr::addr_of_mut!(stru);
+        let mut_ref = opacue_to_mut::<VoidStrut>(raw_stru);
+        assert_eq!(mut_ref.age, 1);
 
-        opacue_to_mut::<VoidStrut>(raw_stru);
+        let mut_ptr = mut_to_opacue(mut_ref);
+        assert_eq!(mut_ptr, raw_stru.cast());
+    }
+    #[test]
+    fn test_point_ref() {
+        let  stru = VoidStrut { age: 1 };
+        let raw_stru = ptr::addr_of!(stru);
+        let reff = opacue_to_ref::<VoidStrut>(raw_stru);
+        assert_eq!(reff.age, 1);
+
+        let mut_ptr = ref_to_opacue(reff);
+        assert_eq!(mut_ptr, raw_stru.cast());
     }
 
     #[test]
