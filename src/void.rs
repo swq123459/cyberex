@@ -70,6 +70,9 @@ pub fn mut_to_opacue<T>(r: &mut T) -> *mut c_void {
     r as *const _ as *mut _
 }
 
+pub fn ref_to_opacue<T>(r: & T) -> *const c_void {
+    r as *const _ as *const _
+}
 pub fn delete<T>(ctx: *mut c_void) {
     drop(unsafe { Box::from_raw(ctx as *mut _ as *mut T) });
 }
