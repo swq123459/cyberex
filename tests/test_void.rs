@@ -27,7 +27,7 @@ mod tests {
     }
     #[test]
     fn test_point_ref() {
-        let  stru = VoidStrut { age: 1 };
+        let stru = VoidStrut { age: 1 };
         let raw_stru = ptr::addr_of!(stru);
         let reff = opacue_to_ref::<VoidStrut>(raw_stru);
         assert_eq!(reff.age, 1);
@@ -41,14 +41,15 @@ mod tests {
         let mut stru = VoidStrut { age: 1 };
         let void = HyVoid::from_ref(&mut stru);
 
-        let stru_ref = opacue_to_mut::<VoidStrut>(void.as_ptr().cast());
-        assert_eq!(stru_ref.age, 1);
+        assert_eq!(void.as_ref().age, 1);
 
-        let void_2 = HyVoid::<VoidStrut>::from_ptr(void.as_ptr());
-        let stru_re2 = opacue_to_mut::<VoidStrut>(void_2.as_ptr().cast());
-        stru_re2.age = 2;
+        let mut void_2 = HyVoid::<VoidStrut>::from_ptr(void.as_ptr());
+        void_2.as_mut().age = 2;
 
-        assert_eq!(stru_re2.age, 2);
+        assert_eq!(void_2.as_ref().age, 2);
+        // copy
+        let void_copy = void_2;
+        assert_eq!(void_copy.as_ref().age, 2);
     }
     #[test]
     fn test_hyvoidconst() {
@@ -62,6 +63,10 @@ mod tests {
         let stru_re2 = opacue_to_ref::<VoidStrut>(void_2.as_ptr().cast());
 
         assert_eq!(stru_re2.age, 1);
+        // copy
+        let void_copy = void_2;
+        assert_eq!(opacue_to_ref::<VoidStrut>(void_copy.as_ptr().cast()).age, 1);
+        assert_eq!(void_copy.as_ref().age, 1);
     }
     #[test]
     fn test_hyvoid_dptr() {

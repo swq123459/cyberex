@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
 use std::{os::raw::c_void, ptr::NonNull};
+
+#[derive(Clone, Copy)]
 pub struct HyVoid<T> {
     ptr: *mut T,
 }
@@ -24,7 +26,17 @@ impl<T> HyVoid<T> {
         std::ptr::addr_of_mut!(self.ptr).cast()
     }
 }
-
+impl<T> AsMut<T> for HyVoid<T> {
+    fn as_mut(&mut self) -> &mut T {
+        opacue_to_mut(self.ptr)
+    }
+}
+impl<T> AsRef<T> for HyVoid<T> {
+    fn as_ref(&self) -> &T {
+        opacue_to_ref(self.ptr)
+    }
+}
+#[derive(Clone, Copy)]
 pub struct HyVoidConst<T> {
     ptr: *const T,
 }
@@ -48,7 +60,11 @@ impl<T> HyVoidConst<T> {
         std::ptr::addr_of!(self.ptr).cast()
     }
 }
-
+impl<T> AsRef<T> for HyVoidConst<T> {
+    fn as_ref(&self) -> &T {
+        opacue_to_ref(self.ptr)
+    }
+}
 pub fn opacue_to_mut<'a, T>(user: *mut T) -> &'a mut T {
     if user.is_null() {
         panic!("Pointer is null")
@@ -70,7 +86,7 @@ pub fn mut_to_opacue<T>(r: &mut T) -> *mut c_void {
     r as *const _ as *mut _
 }
 
-pub fn ref_to_opacue<T>(r: & T) -> *const c_void {
+pub fn ref_to_opacue<T>(r: &T) -> *const c_void {
     r as *const _ as *const _
 }
 pub fn delete<T>(ctx: *mut c_void) {
