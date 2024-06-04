@@ -221,7 +221,7 @@ mod tests {
     }
     #[test]
     fn test_dev_path_of_root_env() {
-        let env_var = "FUCKYOU_ROOT";
+        let env_var = "NO_SET_ENV";
         let default_value = DevPath {
             include: "fuck".into(),
             lib: "you".into(),
