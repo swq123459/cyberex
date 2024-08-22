@@ -204,7 +204,7 @@ mod tests {
             );
 
             let env_var = "FUCKYOU_ROOT";
-            std::env::set_var(env_var, "/workspace/cyberex/thirdlib/catch2");
+            unsafe { std::env::set_var(env_var, "/workspace/cyberex/thirdlib/catch2") };
             let dev_path = dev_path_of_root_env(env_var);
             assert_eq!(
                 dev_path.lib.display().to_string(),
