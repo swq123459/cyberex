@@ -1,16 +1,24 @@
 use std::env;
 use std::str::FromStr;
 
-pub fn eval_env<T>(var_name: &str, default_value: T) -> Result<T, T::Err>
+pub fn eval_env_with<T, F>(var_name: &str, default_value: T, parse_fn: F) -> Result<T, T::Err>
 where
     T: FromStr,
+    F: FnOnce(&str) -> Result<T, T::Err>,
 {
     let Ok(var_value) = env::var(var_name) else {
         return Ok(default_value);
     };
 
-    let parsed = var_value.parse::<T>()?;
+    let parsed = parse_fn(&var_value)?;
     Ok(parsed)
+}
+
+pub fn eval_env<T>(var_name: &str, default_value: T) -> Result<T, T::Err>
+where
+    T: FromStr,
+{
+    eval_env_with(var_name, default_value, T::from_str)
 }
 
 pub fn eval_env_or<T>(var_name: &str, default_value: T) -> T
@@ -49,6 +57,18 @@ mod tests {
             let def = SocketAddr::from(([127, 0, 0, 1], 5423));
             // localhost is no ip
             assert!(eval_env::<SocketAddr>("LC_ADDR", def).is_err());
+        }
+
+        {
+            unsafe { env::set_var("LC_ADDR", "localhost:1922") };
+            let def = SocketAddr::from(([127, 0, 0, 1], 5423));
+            // localhost is no ip
+            assert_eq!(
+                eval_env_with::<SocketAddr, _>("LC_ADDR", def, |s| { s.replace("localhost", "127.0.0.1").parse() })
+                    .unwrap()
+                    .to_string(),
+                "127.0.0.1:1922"
+            );
         }
     }
 }
