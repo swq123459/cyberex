@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     fn test_cargo_target_dir() {
-        std::env::set_var("PROFILE", "debug");
+        unsafe { std::env::set_var("PROFILE", "debug") };
         assert_eq!(cargo_target_bin_dir(), PathBuf::from("/workspace/cyberex/target/debug"));
         assert_eq!(cargo_target_dir(), PathBuf::from("/workspace/cyberex/target"));
         assert_eq!(cargo_profile_dir(), PathBuf::from("/workspace/cyberex"));
