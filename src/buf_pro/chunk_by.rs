@@ -44,6 +44,9 @@ impl<T: PartialEq + Clone> ChunkerBy<T> {
             last_start: None,
         }
     }
+    pub fn iden(&self) -> &[T] {
+        &self.iden
+    }
     fn extract_cache(&mut self) {
         if let Some(last_start) = self.last_start.take() {
             self.buffer.drain(..last_start);

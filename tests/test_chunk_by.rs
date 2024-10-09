@@ -3,7 +3,7 @@
 mod tests {
 
     use cyberex::{
-        buf_pro::{chunk_by::*, search::*},
+        buf_pro::{chunk_by::*, search::*, split_by::SpliterBy},
         xfs::cargo_path::get_project_root_path,
     };
     use std::fs::{self};
@@ -45,6 +45,21 @@ mod tests {
             assert_eq!(c[1], [0, 0, 0, 1, 4, 4, 4].to_vec());
             assert_eq!(c[2], [0, 0, 0, 1, 5, 5].to_vec());
         }
+    }
+
+    #[test]
+    fn test_case_init_first_index() {
+        let mut chunker = SpliterBy::new(&[0, 0, 0, 1]);
+
+        let c = chunker.chunk(&[1, 2, 3, 4]);
+        assert!(c.is_empty());
+        let c = chunker.chunk(&[0, 0, 0, 1]);
+        assert_eq!(c.len(), 1);
+        assert_eq!(c[0], [1, 2, 3, 4].to_vec());
+
+        let c = chunker.chunk(&[3, 4, 5, 0, 0, 0, 1]);
+        assert_eq!(c.len(), 1);
+        assert_eq!(c[0], [0, 0, 0, 1, 3, 4, 5].to_vec());
     }
     #[test]
     fn test_case_chunker_by_file() {
